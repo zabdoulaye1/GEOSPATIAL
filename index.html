@@ -1,7 +1,78 @@
 <!DOCTYPE html>
-<html>
-  <head><title>Bienvenue sur GEOSPATIAL</title></head>
-  <body>
-    <h1>Hello GEOSPATIAL 👋</h1>
-  </body>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Accueil - GEOSPATIAL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background: linear-gradient(to right, #003366, #0077cc);
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      color: white;
+      text-align: center;
+    }
+    .logo {
+      max-width: 220px;
+      margin-bottom: 30px;
+    }
+    h1 {
+      font-size: 22px;
+      margin-bottom: 30px;
+    }
+    .search-box {
+      display: flex;
+      width: 90%;
+      max-width: 500px;
+      margin-bottom: 15px;
+    }
+    .search-box input {
+      flex: 1;
+      padding: 15px;
+      border: none;
+      border-radius: 30px 0 0 30px;
+      font-size: 16px;
+      outline: none;
+    }
+    .search-box button {
+      padding: 15px 25px;
+      background-color: white;
+      color: #0077cc;
+      border: none;
+      border-radius: 0 30px 30px 0;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .tagline {
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <img src="geospatial-logo.png" alt="GEOSPATIAL" class="logo">
+  <h1>Bienvenue sur GEOSPATIAL : Données, Territoires, Solutions</h1>
+  <form class="search-box" onsubmit="goToMap(event)">
+    <input type="text" id="searchInput" placeholder="Chercher un lieu, un point d'eau, un village..." required>
+    <button type="submit">OK</button>
+  </form>
+  <div class="tagline">🌍 Explorez et valorisez votre territoire grâce aux données géospatiales</div>
+
+  <script>
+    function goToMap(event) {
+      event.preventDefault();
+      const query = document.getElementById("searchInput").value.trim();
+      if (query) {
+        window.location.href = "map.html?search=" + encodeURIComponent(query);
+      }
+    }
+  </script>
+</body>
 </html>

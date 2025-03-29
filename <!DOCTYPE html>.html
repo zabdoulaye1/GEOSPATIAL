@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>GEOSPATIAL - Données et Territoires</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
+
+    #login {
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      background: #00222e;
+      color: white;
+    }
+
+    #login input {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 5px;
+      width: 220px;
+      border: none;
+    }
+
+    #login button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      border: none;
+      background: #ffc107;
+      color: black;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #login p { color: tomato; display: none; margin-top: 10px; }
+
+    #accueil, #app { height: 100vh; width: 100vw; display: none; }
+    #accueil {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #003c4e, #00222e);
+      color: white;
+      text-align: center;
+    }
+    #accueil img { height: 200px; margin-bottom: 20px; }
+    #accueil input {
+      width: 300px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 16px;
+      border: none;
+    }
+    #accueil button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #ffc107;
+      color: black;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #accueil p { margin-top: 20px; font-size: 14px; }
+
+    #topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #f0f9ff;
+      border-bottom: 1px solid #ccc;
+    }
+    #topbar img { height: 100px; }
+    .right-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #main {
+      display: flex;
+      height: calc(100vh - 100px);
+    }
+    #sidebar {
+      width: 280px;
+      padding: 20px;
+      background: #f5f9fb;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .section-title {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    #sidebar button {
+      padding: 10px;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #map {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+
+<!-- PAGE CONNEXION -->
+<div id="login">
+  <h2>Connexion à GEOSPATIAL</h2>
+  <input type="text" id="username" placeholder="Nom d'utilisateur">
+  <input type="password" id="password" placeholder="Mot de passe">
+  <button onclick="verifierConnexion()">Se connecter</button>
+  <p id="loginError">Identifiants incorrects</p>
+</div>
+
+<!-- PAGE ACCUEIL -->
+<div id="accueil">
+  <img src="geospatial-logo.png" alt="Logo">
+  <h2>Bienvenue sur GEOSPATIAL : Données, Territoires, Solutions</h2>
+  <input type="text" id="accueilSearch" placeholder="Chercher un lieu...">
+  <button onclick="entrerDepuisAccueil()">OK</button>
+  <p>🌍 Explorez et valorisez votre territoire grâce aux données géospatiales</p>
+</div>
+
+<!-- INTERFACE PRINCIPALE -->
+<div id="app">
+  <div id="topbar">
+    <img src="geospatial-logo.png" alt="Logo">
+    <div class="right-controls">
+      <input type="text" id="topSearch" placeholder="Rechercher...">
+      <button onclick="rechercherTop()">Rechercher</button>
+      <select onchange="setLanguage(this.value)">
+        <option value="fr">🇫🇷 Français</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="ha">🇳🇬 Hausa</option>
+      </select>
+      <button onclick="retourAccueil()">🏠 Accueil</button>
+    </div>
+  </div>
+  <div id="main">
+    <div id="sidebar">
+      <div class="section-title" id="themeTitle">Thématiques</div>
+      <button id="btnEau">💧 Eau</button>
+      <button id="btnIles">🏝️ Îles flottantes</button>
+      <button id="btnBio">🌿 Biodiversité</button>
+      <button id="btn3D">🧭 3D</button>
+      <div class="section-title" id="sourceTitle">Sources de données</div>
+      <button onclick="switchFond('esri')">Satellite Esri</button>
+      <button onclick="switchFond('osm')">OpenStreetMap</button>
+      <button onclick="switchFond('mapbox')">Mapbox</button>
+      <button>GNSS</button>
+      <button>Lidar</button>
+      <button>Drone</button>
+    </div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script>
+  let map;
+  let lastMarker;
+
+  function verifierConnexion() {
+    const user = document.getElementById("username").value.trim();
+    const pass = document.getElementById("password").value.trim();
+    if (user === "admin" && pass === "geospatial") {
+      document.getElementById("login").style.display = "none";
+      document.getElementById("accueil").style.display = "flex";
+    } else {
+      document.getElementById("loginError").style.display = "block";
+    }
+  }
+
+  const baseLayers = {
+    esri: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri'
+    }),
+    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data © OpenStreetMap'
+    }),
+    mapbox: L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/{z}/{x}/{y}?access_token=pk.XXXX', {
+      attribution: 'Map © Mapbox', tileSize: 512, zoomOffset: -1
+    })
+  };
+
+  function initMap() {
+    map = L.map('map', {
+      center: [13.0, 14.0],
+      zoom: 6,
+      layers: [baseLayers.esri]
+    });
+    L.Control.geocoder().addTo(map);
+  }
+
+  function entrerDepuisAccueil() {
+    document.getElementById('accueil').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    if (!map) initMap();
+    const lieu = document.getElementById('accueilSearch').value;
+    rechercherLieu(lieu);
+  }
+
+  function retourAccueil() {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('accueil').style.display = 'flex';
+  }
+
+  function rechercherTop() {
+    const lieu = document.getElementById('topSearch').value;
+    rechercherLieu(lieu);
+  }
+
+  function rechercherLieu(lieu) {
+    if (!lieu) return;
+    L.Control.Geocoder.nominatim().geocode(lieu, function(results) {
+      if (results.length > 0) {
+        const r = results[0];
+        if (lastMarker) map.removeLayer(lastMarker);
+        map.setView(r.center, 14);
+        lastMarker = L.marker(r.center).addTo(map).bindPopup(r.name).openPopup();
+      } else {
+        alert("Aucun résultat trouvé.");
+      }
+    });
+  }
+
+  function switchFond(type) {
+    Object.values(baseLayers).forEach(l => map.removeLayer(l));
+    baseLayers[type].addTo(map);
+  }
+
+  function setLanguage(lang) {
+    const texts = {
+      fr: { eau: "💧 Eau", iles: "🏝️ Îles flottantes", bio: "🌿 Biodiversité", view3d: "🧭 3D", theme: "Thématiques", source: "Sources de données" },
+      en: { eau: "💧 Water", iles: "🏝️ Floating Islands", bio: "🌿 Biodiversity", view3d: "🧭 3D", theme: "Themes", source: "Data Sources" },
+      ar: { eau: "💧 ماء", iles: "🏝️ جزر عائمة", bio: "🌿 التنوع البيولوجي", view3d: "🧭 ثلاثي الأبعاد", theme: "المواضيع", source: "مصادر البيانات" },
+      ha: { eau: "💧 Ruwa", iles: "🏝️ Tsibiran", bio: "🌿 Dabbobi", view3d: "🧭 3D", theme: "Jigo", source: "Tushen bayanai" }
+    };
+    const t = texts[lang];
+    document.getElementById("btnEau").textContent = t.eau;
+    document.getElementById("btnIles").textContent = t.iles;
+    document.getElementById("btnBio").textContent = t.bio;
+    document.getElementById("btn3D").textContent = t.view3d;
+    document.getElementById("themeTitle").textContent = t.theme;
+    document.getElementById("sourceTitle").textContent = t.source;
+  }
+</script>
+</body>
+</html>
